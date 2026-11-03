@@ -70,8 +70,6 @@ Pixel AUROC is very high (97.4%–98.3%) because the model reliably separates de
 
 ![MVTec bottle qualitative comparison](assets/qualitative_mvtec_ad_bottle_K5.png)
 
-![VisA cashew qualitative comparison](assets/qualitative_VisA_cashew_K5.png)
-
 ## How to Run
 
 ### Google Colab
