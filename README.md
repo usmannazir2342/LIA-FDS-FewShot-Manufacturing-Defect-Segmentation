@@ -1,99 +1,17 @@
-# LIA-FDS: Few-Shot Manufacturing & Food Defect Segmentation
-
-## Project Overview
-
-On manufacturing and food packaging lines, collecting thousands of defective images for every new product is difficult. This project tests whether useful defect segmentation is possible with only a few labeled examples. It compares U-Net, SegFormer, Frozen DINOv2, and an adapted DINOv2 (ViT-S/14) pipeline called LIA-FDS at 1-, 5-, and 10-shot settings.
-
-The benchmark covers four categories: MVTec-AD `bottle` and `capsule`, plus VisA `cashew` and `fryum`. It is designed as a practical computer vision experiment that is easy to reproduce and discuss in an engineering interview.
-
-## Key Highlights
-
-- **Strong localization with just 5 images:** LIA-FDS reaches **97.40% Pixel AUROC** and **0.6223 mIoU**, compared with 5-shot U-Net at 69.29% AUROC / 0.5382 mIoU and SegFormer at 91.67% AUROC / 0.5534 mIoU.
-- **Better few-shot defect overlap:** At K=5, Defect IoU is more than twice U-Net's result (**0.2803 vs. 0.1180**), and Pixel AP improves from **0.2640 to 0.5279**.
-- **More stable under factory lighting changes:** With synthetic brightness and contrast shifts at K=5, LIA_A3_Ours keeps **96.66% AUROC** and **0.4819 AP**. U-Net reaches 0.1620 AP and SegFormer reaches 0.2592 AP.
-- **Fast inference:** The adapted DINOv2 pipeline runs at about **12.7 ms per image**, or roughly **78 FPS**, on an NVIDIA L4 GPU.
-
-## How It Works
-
-1. **Feature backbone:** A frozen DINOv2 (ViT-S/14) processes 224 x 224 images and produces 16 x 16 patch features.
-2. **LIA adapter:** A lightweight residual adapter is trained with episodic few-shot tasks to keep features stable when lighting changes.
-3. **Prototype matching:** Query patches are compared with normal-background prototypes from K-Means and defective support prototypes.
-4. **Quick support adaptation:** The pipeline performs 45 fine-tuning steps on the support set before evaluating query images.
-
-## Results & Observations
-
-### K=1, 5, 10 Benchmark
-
-| K | Model | mIoU | Defect IoU | Pixel AUROC | Pixel AP | Latency (ms) |
-|---:|---|---:|---:|---:|---:|---:|
-| 1 | LIA_A2_SegOnly | 0.5833 | 0.2008 | 0.9503 | 0.4709 | 12.67 |
-| 1 | LIA_A3_Ours | 0.5515 | 0.1402 | 0.9414 | 0.4327 | 12.67 |
-| 1 | SegFormer | 0.5204 | 0.0823 | 0.8920 | 0.3016 | 9.57 |
-| 1 | Frozen_DINOv2 | 0.5167 | 0.0726 | 0.9293 | 0.3401 | 12.42 |
-| 1 | U-Net | 0.5041 | 0.0569 | 0.6400 | 0.1680 | 3.55 |
-| 5 | LIA_A3_Ours | **0.6223** | **0.2803** | 0.9740 | **0.5279** | 12.72 |
-| 5 | LIA_A2_SegOnly | 0.6213 | 0.2766 | **0.9765** | 0.5269 | 12.69 |
-| 5 | Frozen_DINOv2 | 0.5712 | 0.1755 | 0.9613 | 0.4227 | 12.42 |
-| 5 | SegFormer | 0.5534 | 0.1456 | 0.9167 | 0.3694 | 9.57 |
-| 5 | U-Net | 0.5382 | 0.1180 | 0.6929 | 0.2640 | 3.54 |
-| 10 | U-Net | 0.6124 | 0.2588 | 0.7198 | 0.3672 | 3.54 |
-| 10 | LIA_A2_SegOnly | 0.6076 | 0.2643 | 0.9817 | 0.5215 | 12.68 |
-| 10 | LIA_A3_Ours | 0.6074 | 0.2624 | **0.9833** | 0.5188 | 12.72 |
-| 10 | SegFormer | 0.5869 | 0.2096 | 0.9412 | 0.4316 | 9.57 |
-| 10 | Frozen_DINOv2 | 0.5593 | 0.1536 | 0.9675 | 0.4534 | 12.42 |
-
-### K=5 Illumination Stress Test
-
-This test uses seed 42 and applies brightness and contrast shifts to query images to simulate changing factory lighting.
-
-| K | Model | mIoU | Defect IoU | Pixel AUROC | Pixel AP | Latency (ms) |
-|---:|---|---:|---:|---:|---:|---:|
-| 5 | LIA_A2_SegOnly | **0.5937** | **0.2341** | 0.9638 | 0.4671 | 12.57 |
-| 5 | LIA_A3_Ours | 0.5907 | 0.2249 | **0.9666** | **0.4819** | 12.59 |
-| 5 | Frozen_DINOv2 | 0.5407 | 0.1235 | 0.9498 | 0.3448 | 12.43 |
-| 5 | SegFormer | 0.5306 | 0.1068 | 0.8845 | 0.2592 | 9.59 |
-| 5 | U-Net | 0.5128 | 0.0685 | 0.6248 | 0.1620 | 3.54 |
-
-### Practical Note on Metrics
-
-Pixel AUROC is very high (97.4%–98.3%) because the model reliably separates defect and background regions. Defect IoU is naturally lower on tiny hairline scratches, especially in capsule and cashew images. DINOv2 predicts on a 16 x 16 patch grid and then upsamples the result to 224 x 224, so very thin boundaries are difficult to recover exactly.
-
-## Visualizations
-
-![Sample MVTec bottle defect](assets/sample_mvtec_bottle_defect.png)
-
-![mIoU trend across K](assets/miou_trend_across_k.png)
-
-![Inference latency at K=10](assets/inference_latency_k10.png)
-
-![Latency versus mIoU trade-off](assets/latency_vs_miou_tradeoff.png)
-
-## How to Run
-
-### Google Colab
-
-1. Open `LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb` in Google Colab.
-2. Install the dependencies from `requirements.txt` in the first cell.
-3. Mount Google Drive and point the notebook at the prepared MVTec-AD and VisA datasets.
-4. Run the cells from top to bottom. The notebook caches checkpoints and experiment results where configured.
-
-### Local
-
-```bash
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-# source .venv/bin/activate
+LIA-FDS: Few-Shot Manufacturing & Food Defect SegmentationOverviewIn manufacturing and food-processing lines, collecting and labeling thousands of defect images for every new product SKU is slow and expensive (the factory cold-start problem). In addition, changes in factory floor lighting (glare, shadows, or camera exposure shifts) often cause standard segmentation models to produce false alarms.LIA-FDS (Local Illumination-Adaptive Few-Shot Defect Segmentation) is a practical few-shot segmentation pipeline built on top of a frozen DINOv2 (ViT-S/14) backbone. Using only $K \in \{1, 5, 10\}$ defective support images, the model adapts to unseen rigid industrial products and organic food items while staying robust against sudden illumination shifts.The pipeline is benchmarked across four categories spanning two industrial domains:Industrial Rigid Packaging (MVTec-AD): bottle, capsuleFood & Agricultural Quality Control (VisA): cashew, fryumKey HighlightsHigh Anomaly Localization with 5 Samples ($K=5$): Achieves 97.40% Pixel AUROC (0.9833 at $K=10$) and 0.6223 mIoU averaged across 3 random seeds (42, 123, 3407), outperforming 5-shot U-Net (69.29% AUROC, 0.5382 mIoU) and SegFormer (91.67% AUROC, 0.5534 mIoU).2.37x Higher Few-Shot Defect IoU: Reaches 0.2803 Defect IoU and 0.5279 Pixel AP at $K=5$, more than doubling the 5-shot U-Net baseline (0.1180 Defect IoU, 0.2640 AP).Robust to Factory Lighting Changes: Under severe brightness, contrast, and gamma shifts on test images ($K=5$), LIA_A3_Ours maintains 96.66% Pixel AUROC and 0.4819 Pixel AP, whereas U-Net drops to 0.1620 AP and SegFormer drops to 0.2592 AP.Real-Time Conveyor Speed: Runs at 12.72 ms per frame (~78.6 FPS) on an NVIDIA L4 GPU, making it suitable for real-time in-line quality inspection.Pipeline Architecture (v5 Pro)Frozen Foundation Backbone (DINOv2 ViT-S/14): Extracts rich $16 \times 16$ patch token embeddings from $224 \times 224$ input images (embed_dim = 384) without overfitting on small datasets.Local Illumination-Invariant Adapter (LIA): A lightweight residual spatial-channel adapter trained via episodic meta-learning (1,500 episodes). During training, an illumination-consistency cosine loss aligns features between clean images and photometrically perturbed views.Multi-Prototype Support Memory: Uses K-Means clustering ($M=5$) on normal background tokens from the support set alongside foreground defect prototypes to model diverse normal surface textures.Target-Domain Support Adaptation: Performs 45 fast gradient adaptation steps on the $K$-shot support set (using Focal + Dice loss) before evaluating on unseen query images.Quantitative Results1. Few-Shot Benchmark Across $K \in \{1, 5, 10\}$ (Averaged Across 3 Seeds: 42, 123, 3407)Full raw numbers are available in results/ensemble_summary_across_seeds.csv.Shots (K)ModelmIoUDefect IoUPixel AUROCPixel APLatency (ms)Throughput (FPS)1LIA_A2_SegOnly0.58330.20080.95030.470912.6778.91LIA_A3_Ours0.55150.14020.94140.432712.6778.91SegFormer0.52040.08230.89200.30169.57104.51Frozen_DINOv20.51670.07260.92930.340112.4280.51U-Net0.50410.05690.64000.16803.55281.75LIA_A3_Ours0.62230.28030.97400.527912.7278.65LIA_A2_SegOnly0.62130.27660.97650.526912.6978.85Frozen_DINOv20.57120.17550.96130.422712.4280.55SegFormer0.55340.14560.91670.36949.57104.55U-Net0.53820.11800.69290.26403.54282.510U-Net0.61240.25880.71980.36723.54282.510LIA_A2_SegOnly0.60760.26430.98170.521512.6878.910LIA_A3_Ours0.60740.26240.98330.518812.7278.610SegFormer0.58690.20960.94120.43169.57104.510Frozen_DINOv20.55930.15360.96750.453412.4280.52. Factory Illumination Stress-Test ($K=5$, Unseen Lighting Shift on Query Images)To evaluate robustness under changing factory floor lighting, query images were subjected to synthetic brightness, contrast, and gamma perturbations while support images remained clean. Full results are saved in results/illumination_stress_test_K5.csv.Shots (K)ModelStress-Test mIoUStress-Test Defect IoUPixel AUROCPixel APLatency (ms)5LIA_A3_Ours0.59070.22490.96660.481912.595LIA_A2_SegOnly0.59370.23410.96380.467112.575Frozen_DINOv20.54070.12350.94980.344812.435SegFormer0.53060.10680.88450.25929.595U-Net0.51280.06850.62480.16203.54Practical Note on Patch Resolution vs. Pixel MetricsWhy Pixel AUROC is 97.4%–98.3% while hard Defect IoU is ~28%: DINOv2 (ViT-S/14) processes $224 \times 224$ images using $14 \times 14$ patches, producing a $16 \times 16$ feature grid. When bilinearly upsampled $14\times$ back to $224 \times 224$, predictions on ultra-thin hairline scratches (capsule and cashew, where defects occupy <2% of image pixels) have slightly thicker boundaries than 1-pixel ground-truth masks.As a result, probability ranking across pixels (Pixel AUROC = 0.9740–0.9833 and Pixel AP = 0.5279) is very strong for defect detection and localization, while hard-thresholded Defect IoU (0.2803 at $K=5$) still outperforms 5-shot U-Net (0.1180) by +137.5% and SegFormer (0.1456) by +92.5%.Performance & Latency VisualizationsmIoU Trend Across Few-Shot Settings ($K = 1, 5, 10$)Inference Latency Comparison ($K = 10$)Accuracy vs. Latency Trade-OffRepository StructureLIA-FDS-FewShot-Manufacturing-Defect-Segmentation/
+├── LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb   # Full training, adaptation & evaluation notebook
+├── README.md                                      # Project documentation & benchmark summary
+├── requirements.txt                               # Python dependencies
+├── results/
+│   ├── ensemble_summary_across_seeds.csv          # Multi-seed benchmark results (K=1, 5, 10)
+│   └── illumination_stress_test_K5.csv            # Lighting shift robustness results (K=5)
+└── assets/
+    ├── sample_mvtec_bottle_defect.png             # Sample image & ground-truth defect mask
+    ├── miou_trend_across_k.png                    # mIoU curve across K shots
+    ├── inference_latency_k10.png                  # Model inference latency comparison
+    └── latency_vs_miou_tradeoff.png               # mIoU vs latency scatter plot
+How to RunClone the repository and install dependencies:git clone https://github.com/usmannazir2342/LIA-FDS-FewShot-Manufacturing-Defect-Segmentation.git
+cd LIA-FDS-FewShot-Manufacturing-Defect-Segmentation
 pip install -r requirements.txt
-jupyter notebook LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb
-```
-
-The notebook expects the datasets and their masks to be available at the paths configured in the dataset setup cells. The included CSV files are the benchmark summaries, so the charts and README results can be reviewed without rerunning the full experiment.
-
-## Project Files
-
-- `LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb`: end-to-end experiment notebook.
-- `results/`: benchmark and illumination stress-test CSV files.
-- `assets/`: plots and qualitative comparison images extracted from notebook outputs.
-- `requirements.txt`: core Python dependencies.
+Run the notebook:
+Open LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb in Google Colab (L4/T4 GPU recommended) or a local CUDA environment and run all cells sequentially.
