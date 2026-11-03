@@ -68,8 +68,6 @@ Pixel AUROC is very high (97.4%–98.3%) because the model reliably separates de
 
 ![Latency versus mIoU trade-off](assets/latency_vs_miou_tradeoff.png)
 
-![MVTec bottle qualitative comparison](assets/qualitative_mvtec_ad_bottle_K5.png)
-
 ## How to Run
 
 ### Google Colab
