@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+.DS_Store
+
+# Local datasets and experiment artifacts
+datasets/
+data/
+*.tar
+*.tar.gz
+*.zip
+checkpoints/
+
+# Keep the project deliverables tracked
+!results/*.csv
+!assets/*.png
+!LIA_FDS_Final_Research_Notebook_v5_Pro.ipynb
